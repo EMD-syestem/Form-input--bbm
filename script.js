@@ -39,7 +39,7 @@ if (window.__REALTIME_LOADED__) {
      SCRIPT URL
   ================================ */
   const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxPgq0sA8TZPNqap2LPdg7SzrLOt0blegGzgp6J07m8wRwWwkX7ewKHZDeDat5yPDnZBA/exec";
+    "https://script.google.com/macros/s/AKfycbyAYNtMT-XBclOZ-uN-kvOtyMPmZToykrn6wzcrtik-lRcCrfMA091SPbDe_Cjg0WKS/exec";
 
   /* ===============================
      LOGIN HANDLER
@@ -333,7 +333,7 @@ function login(event) {
   document.getElementById("loader").style.display = "flex";
 
   fetch(
-    "https://script.google.com/macros/s/AKfycbxPgq0sA8TZPNqap2LPdg7SzrLOt0blegGzgp6J07m8wRwWwkX7ewKHZDeDat5yPDnZBA/exec",
+    "https://script.google.com/macros/s/AKfycbyAYNtMT-XBclOZ-uN-kvOtyMPmZToykrn6wzcrtik-lRcCrfMA091SPbDe_Cjg0WKS/exec",
     {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -568,7 +568,7 @@ document.querySelectorAll(".header-whatsapp a").forEach((link) => {
 });
 
 const scriptURL =
-  "https://script.google.com/macros/s/AKfycbzrB4nuSldjDLt14j1y8uxhnkHpLAUQ9lwgTtusyGVdREPz5-fJf5iyt43KTvpTgJlx/exec";
+  "https://script.google.com/macros/s/AKfycbyAYNtMT-XBclOZ-uN-kvOtyMPmZToykrn6wzcrtik-lRcCrfMA091SPbDe_Cjg0WKS/exec";
 
 // === FUNGSI UTAMA NAVIGASI ===
 function showSection(id, autoLoad = false) {
