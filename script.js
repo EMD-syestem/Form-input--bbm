@@ -1473,6 +1473,9 @@ async function downloadTableAsExcel(bodyTableId, filename) {
 
 // === Report BBM Per Driver (Tabel per tanggal & kendaraan) ===
 function loadDriverReport() {
+  const selectedMonth = document.getElementById("filterMonth")?.value;
+  // format: 2026-02
+
   fetch(scriptURL + "?action=getAllData")
     .then((response) => {
       if (!response.ok) throw new Error("Gagal ambil data dari server");
@@ -1480,7 +1483,6 @@ function loadDriverReport() {
     })
     .then((data) => {
       console.log("📊 [Driver Report] Data diterima:", data);
-      console.log("🔎 Contoh kolom:", Object.keys(data[0] || {}));
 
       const body = document.getElementById("driverReportBody");
       body.innerHTML = "";
@@ -1490,31 +1492,56 @@ function loadDriverReport() {
         return;
       }
 
-      // 🔹 Ambil semua tanggal unik (urut naik)
+      // ==============================
+      // ✅ FILTER BULAN DI SINI
+      // ==============================
+      let filteredData = data;
+
+      if (selectedMonth) {
+        filteredData = data.filter((row) => {
+          if (!row["Date"]) return false;
+
+          const dateObj = new Date(row["Date"]);
+          const yearMonth =
+            dateObj.getFullYear() +
+            "-" +
+            String(dateObj.getMonth() + 1).padStart(2, "0");
+
+          return yearMonth === selectedMonth;
+        });
+      }
+
+      if (filteredData.length === 0) {
+        body.innerHTML =
+          "<tr><td colspan='4'>Tidak ada data pada bulan ini</td></tr>";
+        return;
+      }
+
+      // 🔹 Ambil semua tanggal unik
       const tanggalSet = new Set();
-      data.forEach((row) => {
+      filteredData.forEach((row) => {
         if (row["Date"]) {
           const tgl = new Date(row["Date"]).toLocaleDateString("id-ID");
           tanggalSet.add(tgl);
         }
       });
+
       const tanggalList = Array.from(tanggalSet).sort(
         (a, b) =>
           new Date(a.split("/").reverse().join("-")) -
           new Date(b.split("/").reverse().join("-"))
       );
 
-      // 🔹 Kelompokkan data per driver -> tanggal -> kendaraan
+      // 🔹 Kelompokkan data
       const driverMap = {};
-      data.forEach((row) => {
+      filteredData.forEach((row) => {
         const driver = row["Driver"] || "-";
         const tanggal = row["Date"]
           ? new Date(row["Date"]).toLocaleDateString("id-ID")
           : "-";
 
-        // ✅ Baca nama kolom sesuai Sheet (KRP-Nopol di kolom F)
         const nopol =
-          row["KRP-Nopol"] || // ← ini sesuai dengan Google Sheet kamu
+          row["KRP-Nopol"] ||
           row["KRP Nopol"] ||
           row["Nopol"] ||
           row["No Polisi"] ||
@@ -1531,7 +1558,7 @@ function loadDriverReport() {
         driverMap[driver][tanggal][nopol] += liter;
       });
 
-      // 🔹 Tampilkan data per driver (per tanggal dan kendaraan)
+      // 🔹 Tampilkan data
       Object.keys(driverMap).forEach((driver) => {
         let total = 0;
         let tanggalHTML = "";
@@ -1557,6 +1584,7 @@ function loadDriverReport() {
             <td style="text-align:left">${kendaraanHTML || "-"}</td>
             <td><b>${total.toFixed(2)}</b></td>
           </tr>`;
+
         body.insertAdjacentHTML("beforeend", rowHTML);
       });
     })
