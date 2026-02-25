@@ -3,11 +3,16 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>FORM INPUT BBM KRP-FIELD & ZONA</title>
-  <link rel="stylesheet" href="./style.css">
+  <title>Form Input BBM KRP</title>
+  <link rel="stylesheet" href="style.css">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg">
+  <!-- ✅ Favicon untuk Browser, Mobile, dan Desktop -->
+  <link rel="icon" type="image/png" sizes="16x16" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg">
+  <link rel="icon" type="image/png" sizes="48x48" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg">
+  <link rel="icon" type="image/png" sizes="64x64" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg">
+  <link rel="icon" type="image/png" sizes="180x180" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg">
+  <link rel="shortcut icon" href="https://i.postimg.cc/3rVQZSTb/Logo-pertamina-emd.jpg" type="image/png">
 </head>
 
 <body>
@@ -516,7 +521,6 @@
                 <option>Zulkifli</option>
                 <option>Yudis Pramana</option>
                 <option>Sandos</option>
-                <option>Dian Saputra</option>
                 <option>Driver Bantuan Antar unit</option>
 
               </select>
@@ -838,6 +842,12 @@
       <!-- === SECTION REPORT BBM PER DRIVER === -->
       <div id="driverReportSection" class="card main-content hidden">
         <h2>Report BBM per Driver</h2>
+
+        <div class="filter-section">
+          <label for="filterMonth">Pilih Bulan:</label>
+          <input type="month" id="filterMonth" onchange="loadDriverReport()">
+        </div>
+
         <div class="action-buttons">
           <button onclick="loadDriverReport()">🔄 Refresh Data</button>
           <button onclick="downloadTableAsExcel('driverReportBody', 'Report_BBM_Per_Driver')">⬇️ Download Excel</button>
@@ -1314,9 +1324,4 @@
 
 </body>
 
-</html>
-    <script  src="./script.js"></script>
-
-  </body>
-  
 </html>
