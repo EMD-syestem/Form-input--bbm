@@ -39,7 +39,7 @@ if (window.__REALTIME_LOADED__) {
      SCRIPT URL
   ================================ */
   const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbyAYNtMT-XBclOZ-uN-kvOtyMPmZToykrn6wzcrtik-lRcCrfMA091SPbDe_Cjg0WKS/exec";
+    "https://script.google.com/macros/s/AKfycbwa06O7lgV01xgP3gpfFgDRj3fdJHEsWGwfu4rn6Hh6Tu7GOb6SXOrhiqJHdWijPGp4/exec";
 
   /* ===============================
      LOGIN HANDLER
@@ -333,7 +333,7 @@ function login(event) {
   document.getElementById("loader").style.display = "flex";
 
   fetch(
-    "https://script.google.com/macros/s/AKfycbyAYNtMT-XBclOZ-uN-kvOtyMPmZToykrn6wzcrtik-lRcCrfMA091SPbDe_Cjg0WKS/exec",
+    "https://script.google.com/macros/s/AKfycbwa06O7lgV01xgP3gpfFgDRj3fdJHEsWGwfu4rn6Hh6Tu7GOb6SXOrhiqJHdWijPGp4/exec",
     {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -568,7 +568,7 @@ document.querySelectorAll(".header-whatsapp a").forEach((link) => {
 });
 
 const scriptURL =
-  "https://script.google.com/macros/s/AKfycbyAYNtMT-XBclOZ-uN-kvOtyMPmZToykrn6wzcrtik-lRcCrfMA091SPbDe_Cjg0WKS/exec";
+  "https://script.google.com/macros/s/AKfycbwa06O7lgV01xgP3gpfFgDRj3fdJHEsWGwfu4rn6Hh6Tu7GOb6SXOrhiqJHdWijPGp4/exec";
 
 // === FUNGSI UTAMA NAVIGASI ===
 function showSection(id, autoLoad = false) {
@@ -788,9 +788,117 @@ document
   .querySelector('input[name="QTY (L)"]')
   .addEventListener("input", hitungBBM);
 
-// === Submit Data Baru ===
-document.getElementById("myForm").addEventListener("submit", (e) => {
+// ==============================
+// FOTO KM + FOTO BUKTI
+// ==============================
+document
+  .getElementById("updatePhotoKM")
+  .addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (evt) {
+      submitPhotoKMBase64 = evt.target.result;
+
+      document.getElementById("previewKM").src = submitPhotoKMBase64;
+      document.getElementById("previewKMContainer").style.display = "block";
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+document
+  .getElementById("updatePhotoBukti")
+  .addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (evt) {
+      submitPhotoBuktiBase64 = evt.target.result;
+
+      document.getElementById("previewBukti").src = submitPhotoBuktiBase64;
+      document.getElementById("previewBuktiContainer").style.display = "block";
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+// GLOBAL FOTO
+let submitPhotoKMBase64 = "";
+let submitPhotoKMLink = "";
+
+let submitPhotoBuktiBase64 = "";
+let submitPhotoBuktiLink = "";
+
+let updatedPhotoKMBase64 = "";
+let updatedPhotoKMLink = "";
+
+let updatedPhotoBase64 = "";
+let updatedPhotoLink = "";
+
+// ==============================
+// SUBMIT DATA BARU
+// ==============================
+document.getElementById("myForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  // ============================
+  // VALIDASI FOTO KM WAJIB ADA
+  // ============================
+  const previewKM = document.getElementById("previewKM");
+  const hasPhotoKM =
+    submitPhotoKMBase64 ||
+    submitPhotoKMLink ||
+    (previewKM && previewKM.src);
+
+  if (!hasPhotoKM) {
+    alert("📷 Foto KM wajib diupload / paste / isi link terlebih dahulu!");
+    return;
+  }
+
+  // ============================
+  // VALIDASI DUPLIKAT
+  // KRP-Nopol + KM awal
+  // ============================
+  const krpNopol =
+    document.querySelector('[name="KRP-Nopol"]')?.value?.trim() || "";
+
+  const kmAwal =
+    document.querySelector('[name="KM awal"]')?.value?.trim() || "";
+
+  if (!krpNopol || !kmAwal) {
+    alert("⚠️ KRP-Nopol dan KM awal wajib diisi!");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${scriptURL}?action=getalldata`);
+    const rows = await res.json();
+
+    const duplicate = Array.isArray(rows) && rows.some(row =>
+      String(row["KRP-Nopol"] || "").trim() === krpNopol &&
+      String(row["KM awal"] || "").trim() === kmAwal
+    );
+
+    if (duplicate) {
+      alert(
+        `❌ Gagal submit!\nKRP-Nopol "${krpNopol}" dengan KM awal "${kmAwal}" sudah ada.`
+      );
+      return;
+    }
+
+  } catch (err) {
+    alert("❌ Validasi duplicate gagal: " + err.message);
+    return;
+  }
+
+  // ============================
+  // BUAT FORMDATA
+  // ============================
   let formData = new FormData(e.target);
   formData.set("action", "submit");
 
@@ -799,20 +907,63 @@ document.getElementById("myForm").addEventListener("submit", (e) => {
   formData.set("Jam submit", now.toLocaleString("id-ID", { hour12: false }));
   formData.set("Jam update", "");
 
+  // ============================
+  // KIRIM FOTO KM
+  // ============================
+  if (submitPhotoKMLink) {
+    formData.set("Foto KM", submitPhotoKMLink);
+  } else if (submitPhotoKMBase64) {
+    formData.set("Foto KM", submitPhotoKMBase64);
+  } else if (previewKM?.src) {
+    formData.set("Foto KM", previewKM.src);
+  }
+
+  // ============================
+  // KIRIM FOTO BUKTI (OPTIONAL)
+  // ============================
+  if (submitPhotoBuktiLink) {
+    formData.set("Foto Bukti", submitPhotoBuktiLink);
+  } else if (submitPhotoBuktiBase64) {
+    formData.set("Foto Bukti", submitPhotoBuktiBase64);
+  }
+
   document.getElementById("loading").style.display = "flex";
 
-  fetch(scriptURL, { method: "POST", body: formData })
+  fetch(scriptURL, {
+    method: "POST",
+    body: formData
+  })
     .then((res) => res.text())
     .then((msg) => {
       document.getElementById("status").innerHTML = msg;
 
-      // 🆕 Reset form TAPI JANGAN HILANGKAN createReservation
       const savedName = localStorage.getItem("reservationName");
       e.target.reset();
-      if (document.getElementById("createReservation"))
+
+      // reset semua variable foto
+      submitPhotoKMBase64 = "";
+      submitPhotoKMLink = "";
+      submitPhotoBuktiBase64 = "";
+      submitPhotoBuktiLink = "";
+
+      updatedPhotoKMBase64 = "";
+      updatedPhotoKMLink = "";
+      updatedPhotoBase64 = "";
+      updatedPhotoLink = "";
+
+      // reset preview
+      document.getElementById("previewKM").src = "";
+      document.getElementById("previewBukti").src = "";
+
+      document.getElementById("previewKMContainer").style.display = "none";
+      document.getElementById("previewBuktiContainer").style.display = "none";
+
+      if (document.getElementById("createReservation")) {
         document.getElementById("createReservation").value = savedName;
+      }
 
       editRowIndex = null;
+
       loadReport();
       loadVehicleReport();
     })
@@ -823,7 +974,6 @@ document.getElementById("myForm").addEventListener("submit", (e) => {
       document.getElementById("loading").style.display = "none";
     });
 });
-
 // === Edit Data Terakhir Berdasarkan KRP-Nopol ===
 document.getElementById("editBtn").addEventListener("click", () => {
   const nopol = document.querySelector('select[name="KRP-Nopol"]').value;
@@ -870,57 +1020,178 @@ document.getElementById("editBtn").addEventListener("click", () => {
 });
 
 // === 🆕 Upload / Paste Foto Saat UPDATE Data ===
-let updatedPhotoBase64 = "";
-let updatedPhotoLink = "";
+document.addEventListener("DOMContentLoaded", function () {
+  const inputKM = document.getElementById("updatePhotoKM");
+  const inputBukti = document.getElementById("updatePhotoBukti");
 
-document.addEventListener("DOMContentLoaded", () => {
-  const photoInput = document.getElementById("updatePhoto");
-  if (!photoInput) return;
+  const linkKM = document.getElementById("linkPhotoKM");
+  const linkBukti = document.getElementById("linkPhotoBukti");
 
-  const linkInput = document.createElement("input");
-  linkInput.type = "url";
-  linkInput.name = "Foto Bukti";
-  linkInput.placeholder = "Link foto (Drive atau lainnya)";
-  linkInput.id = "updatePhotoLink";
-  linkInput.style.marginTop = "5px";
-  photoInput.insertAdjacentElement("afterend", linkInput);
+  const previewKM = document.getElementById("previewKM");
+  const previewBukti = document.getElementById("previewBukti");
 
-  photoInput.addEventListener("change", function (e) {
+  const previewKMContainer = document.getElementById("previewKMContainer");
+  const previewBuktiContainer = document.getElementById("previewBuktiContainer");
+
+  let activeTarget = null;
+
+  // pilih target paste
+  [inputKM, linkKM, previewKMContainer].forEach((el) => {
+    if (!el) return;
+
+    el.addEventListener("focus", () => {
+      activeTarget = "km";
+    });
+
+    el.addEventListener("click", () => {
+      activeTarget = "km";
+    });
+  });
+
+  [inputBukti, linkBukti, previewBuktiContainer].forEach((el) => {
+    if (!el) return;
+
+    el.addEventListener("focus", () => {
+      activeTarget = "bukti";
+    });
+
+    el.addEventListener("click", () => {
+      activeTarget = "bukti";
+    });
+  });
+
+  // ===== upload KM =====
+  inputKM?.addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = function (ev) {
-      updatedPhotoBase64 = ev.target.result;
-      const preview = document.getElementById("updatePhotoPreview");
-      preview.src = updatedPhotoBase64;
-      document.getElementById("updatePhotoPreviewContainer").style.display =
-        "block";
+      const img = ev.target.result;
+
+      // submit
+      submitPhotoKMBase64 = img;
+      submitPhotoKMLink = "";
+
+      // update
+      updatedPhotoKMBase64 = img;
+      updatedPhotoKMLink = "";
+
+      previewKM.src = img;
+      previewKMContainer.style.display = "block";
     };
+
     reader.readAsDataURL(file);
   });
 
+  // ===== upload Bukti =====
+  inputBukti?.addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      const img = ev.target.result;
+
+      // submit
+      submitPhotoBuktiBase64 = img;
+      submitPhotoBuktiLink = "";
+
+      // update
+      updatedPhotoBase64 = img;
+      updatedPhotoLink = "";
+
+      previewBukti.src = img;
+      previewBuktiContainer.style.display = "block";
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  // ===== link KM =====
+  linkKM?.addEventListener("input", function () {
+    const url = this.value.trim();
+
+    // submit
+    submitPhotoKMLink = url;
+    submitPhotoKMBase64 = "";
+
+    // update
+    updatedPhotoKMLink = url;
+    updatedPhotoKMBase64 = "";
+
+    if (url) {
+      previewKM.src = url;
+      previewKMContainer.style.display = "block";
+    }
+  });
+
+  // ===== link Bukti =====
+  linkBukti?.addEventListener("input", function () {
+    const url = this.value.trim();
+
+    // submit
+    submitPhotoBuktiLink = url;
+    submitPhotoBuktiBase64 = "";
+
+    // update
+    updatedPhotoLink = url;
+    updatedPhotoBase64 = "";
+
+    if (url) {
+      previewBukti.src = url;
+      previewBuktiContainer.style.display = "block";
+    }
+  });
+
+  // ===== paste image =====
   document.addEventListener("paste", function (event) {
-    const items = (event.clipboardData || event.originalEvent.clipboardData)
-      .items;
+    const items = event.clipboardData?.items || [];
+
     for (const item of items) {
-      if (item.type.indexOf("image") !== -1) {
-        const file = item.getAsFile();
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          updatedPhotoBase64 = e.target.result;
-          const preview = document.getElementById("updatePhotoPreview");
-          preview.src = updatedPhotoBase64;
-          document.getElementById("updatePhotoPreviewContainer").style.display =
-            "block";
-        };
-        reader.readAsDataURL(file);
-        break;
-      }
+      if (!item.type.includes("image")) continue;
+
+      const file = item.getAsFile();
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const base64 = e.target.result;
+
+        // FOTO KM
+        if (activeTarget === "km") {
+          // submit
+          submitPhotoKMBase64 = base64;
+          submitPhotoKMLink = "";
+
+          // update
+          updatedPhotoKMBase64 = base64;
+          updatedPhotoKMLink = "";
+
+          previewKM.src = base64;
+          previewKMContainer.style.display = "block";
+        }
+
+        // FOTO BUKTI
+        if (activeTarget === "bukti") {
+          // submit
+          submitPhotoBuktiBase64 = base64;
+          submitPhotoBuktiLink = "";
+
+          // update
+          updatedPhotoBase64 = base64;
+          updatedPhotoLink = "";
+
+          previewBukti.src = base64;
+          previewBuktiContainer.style.display = "block";
+        }
+      };
+
+      reader.readAsDataURL(file);
+      break;
     }
   });
 });
-
-// === Update Data Berdasarkan Row Index ===
+/// === Update Data Berdasarkan Row Index ===
 document.getElementById("updateBtn").addEventListener("click", () => {
   if (!editRowIndex) {
     alert("Silakan tekan tombol Edit dulu!");
@@ -937,69 +1208,104 @@ document.getElementById("updateBtn").addEventListener("click", () => {
     new Date().toLocaleString("id-ID", { hour12: false })
   );
 
-  // === FOTO ===
-  const linkInput = document.getElementById("updatePhotoLink");
-  if (linkInput && linkInput.value.trim() !== "") {
-    formData.set("Foto Bukti", linkInput.value.trim());
-  } else if (updatedPhotoBase64) {
-    formData.set("Foto Bukti", updatedPhotoBase64);
-  } else {
-    formData.set("Foto Bukti", "");
+  // =========================
+  // FOTO KM
+  // =========================
+  if (updatedPhotoKMLink) {
+    formData.set("Foto KM", updatedPhotoKMLink);
+  } else if (updatedPhotoKMBase64) {
+    formData.set("Foto KM", updatedPhotoKMBase64);
   }
 
-  // 🆕 FIX TERPENTING: Ambil nama user dari localStorage
-  const savedName = localStorage.getItem("reservationName") || "Unknown";
-  formData.set("CreateReservation", savedName); // wajib dikirim ke server
+  // =========================
+  // FOTO BUKTI
+  // =========================
+  if (updatedPhotoLink) {
+    formData.set("Foto Bukti", updatedPhotoLink);
+  } else if (updatedPhotoBase64) {
+    formData.set("Foto Bukti", updatedPhotoBase64);
+  }
 
-  // Tampilkan loading
+  // user
+  const savedName = localStorage.getItem("reservationName") || "Unknown";
+  formData.set("CreateReservation", savedName);
+
+  // loading
   document.getElementById("loading").style.display = "flex";
 
-  fetch(scriptURL, { method: "POST", body: formData })
+  fetch(scriptURL, {
+    method: "POST",
+    body: formData
+  })
     .then((res) => res.text())
     .then((msg) => {
       document.getElementById("status").innerHTML = msg;
 
-      // Reset form TANPA menghapus CreateReservation
+      // reset form
       form.reset();
 
-      // 🆕 Kembalikan nama ke field form setelah reset
-      if (document.getElementById("createReservation"))
-        document.getElementById("createReservation").value = savedName;
-      if (form["CreateReservation"])
-        form["CreateReservation"].value = savedName;
-      if (form["createReservation"])
-        form["createReservation"].value = savedName;
+      // kembalikan nama
+      const createReservation = document.getElementById("createReservation");
 
-      // Reset foto
+      if (createReservation) {
+        createReservation.value = savedName;
+      }
+
+      // reset variable
+      updatedPhotoKMBase64 = "";
+      updatedPhotoKMLink = "";
+
       updatedPhotoBase64 = "";
+      updatedPhotoLink = "";
+
+      submitPhotoKMBase64 = "";
+      submitPhotoKMLink = "";
+
+      submitPhotoBuktiBase64 = "";
+      submitPhotoBuktiLink = "";
+
       editRowIndex = null;
 
+      // =========================
+      // RESET FOTO BUKTI
+      // =========================
+      const fileBukti = document.getElementById("updatePhotoBukti");
+      const linkBukti = document.getElementById("linkPhotoBukti");
+      const previewBukti = document.getElementById("previewBukti");
+      const previewBuktiContainer =
+        document.getElementById("previewBuktiContainer");
+
+      if (fileBukti) fileBukti.value = "";
+      if (linkBukti) linkBukti.value = "";
+      if (previewBukti) previewBukti.src = "";
+      if (previewBuktiContainer) previewBuktiContainer.style.display = "none";
+
+      // =========================
+      // RESET FOTO KM
+      // =========================
+      const fileKM = document.getElementById("updatePhotoKM");
+      const linkKM = document.getElementById("linkPhotoKM");
+      const previewKM = document.getElementById("previewKM");
+      const previewKMContainer =
+        document.getElementById("previewKMContainer");
+
+      if (fileKM) fileKM.value = "";
+      if (linkKM) linkKM.value = "";
+      if (previewKM) previewKM.src = "";
+      if (previewKMContainer) previewKMContainer.style.display = "none";
+
+      // reload
       loadReport();
       loadVehicleReport();
-
-      // Hapus preview foto
-      const previewContainer = document.getElementById(
-        "updatePhotoPreviewContainer"
-      );
-      const previewImage = document.getElementById("updatePhotoPreview");
-      const fileInput = document.getElementById("updatePhoto");
-      const linkInput = document.getElementById("updatePhotoLink");
-
-      if (previewContainer) previewContainer.style.display = "none";
-      if (previewImage) previewImage.src = "";
-      if (fileInput) fileInput.value = "";
-      if (linkInput) linkInput.value = "";
     })
     .catch((err) => {
       document.getElementById("status").innerHTML =
         "❌ Gagal update: " + err.message;
     })
     .finally(() => {
-      // Sembunyikan loading
       document.getElementById("loading").style.display = "none";
     });
 });
-
 function loadReport() {
   // === Buat loader jika belum ada ===
   let loader = document.getElementById("loadReportLoader");
@@ -1074,11 +1380,12 @@ function renderFilteredReport(data) {
     "Jam submit data",
     "Jam update data",
     "Tempat Pengisian",
+    "Foto KM",
     "Foto Bukti"
   ];
 
   if (!data || data.length === 0) {
-    tbody.innerHTML = "<tr><td colspan='17'>Tidak ada data ditemukan</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='18'>Tidak ada data ditemukan</td></tr>";
     return;
   }
 
@@ -1089,47 +1396,70 @@ function renderFilteredReport(data) {
       const td = document.createElement("td");
       let value = row[key] ?? "";
 
-      // === Format tanggal & jam ===
-      if (key === "Date" && value)
+      // =====================
+      // FORMAT TANGGAL
+      // =====================
+      if (key === "Date" && value) {
         value = new Date(value).toLocaleDateString("id-ID");
+      }
 
-      if ((key === "Jam submit data" || key === "Jam update data") && value)
+      // =====================
+      // FORMAT JAM
+      // =====================
+      if ((key === "Jam submit data" || key === "Jam update data") && value) {
         value = new Date(value).toLocaleString("id-ID", { hour12: false });
+      }
 
-      // === FOTO BUKTI ===
-      if (key === "Foto Bukti") {
+      // =====================
+      // FOTO (KM & BUKTI) - FIX FULL BASE64
+      // =====================
+      if (key === "Foto Bukti" || key === "Foto KM") {
         if (value && typeof value === "string") {
-          let fileId = "";
-
-          const patterns = [
-            /\/d\/([a-zA-Z0-9_-]{25,})/,
-            /id=([a-zA-Z0-9_-]{25,})/,
-            /open\?id=([a-zA-Z0-9_-]{25,})/,
-            /file\/d\/([a-zA-Z0-9_-]{25,})/,
-            /uc\?export=view&id=([a-zA-Z0-9_-]{25,})/,
-            /([a-zA-Z0-9_-]{25,})/
-          ];
-
-          for (const pattern of patterns) {
-            const match = value.match(pattern);
-            if (match && match[1]) {
-              fileId = match[1];
-              break;
-            }
-          }
-
-          const photoURL = fileId
-            ? `https://lh3.googleusercontent.com/d/${fileId}=s220`
-            : value;
-
-          td.innerHTML = `
-            <a href="https://drive.google.com/file/d/${fileId}/view" target="_blank">
-              <img src="${photoURL}"
-                   alt="Foto Bukti"
-                   onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/1828/1828665.png';"
+          // 🔥 MODE 1: BASE64 (REKOMENDASI UTAMA)
+          if (value.startsWith("data:image")) {
+            td.innerHTML = `
+              <img src="${value}"
                    style="width:70px;height:70px;border-radius:10px;object-fit:cover;cursor:pointer;">
-            </a>
-          `;
+            `;
+          } else {
+            let fileId = "";
+
+            const patterns = [
+              /\/d\/([a-zA-Z0-9_-]{10,})/,
+              /id=([a-zA-Z0-9_-]{10,})/,
+              /file\/d\/([a-zA-Z0-9_-]{10,})/
+            ];
+
+            for (const pattern of patterns) {
+              const match = value.match(pattern);
+              if (match && match[1]) {
+                fileId = match[1];
+                break;
+              }
+            }
+
+            const photoURL = fileId
+              ? `https://lh3.googleusercontent.com/d/${fileId}=s220` // tampil
+              : value;
+
+            const realURL = fileId
+              ? `https://drive.google.com/uc?export=view&id=${fileId}` // excel
+              : value;
+
+            const linkURL = fileId
+              ? `https://drive.google.com/file/d/${fileId}/view`
+              : value;
+
+            td.innerHTML = `
+    <a href="${linkURL}" target="_blank">
+      <img src="${photoURL}"
+           data-src="${realURL}"
+           loading="lazy"
+           style="width:70px;height:70px;border-radius:10px;object-fit:cover;cursor:pointer;"
+           onerror="this.src='https://drive.google.com/thumbnail?id=${fileId}'">
+    </a>
+  `;
+          }
         } else {
           td.innerHTML = "<span style='color:#aaa;'>📷 Tidak ada foto</span>";
         }
@@ -1143,7 +1473,6 @@ function renderFilteredReport(data) {
     tbody.appendChild(tr);
   });
 }
-
 // =================================================
 // 🔎 FILTER DATA (RENTANG TANGGAL + NOPOL + DRIVER)
 // =================================================
@@ -1320,124 +1649,174 @@ function loadVehicleReport() {
       console.error("❌ [loadVehicleReport] Gagal memuat Vehicle report:", err)
     );
 }
+function fixGoogleDriveUrl(url) {
+  if (!url) return "";
+
+  // format /d/ID
+  let match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) {
+    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+  }
+
+  // format id=ID
+  match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match) {
+    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+  }
+
+  // 🔥 KHUSUS lh3.googleusercontent (FIX TEPAT)
+  if (url.includes("lh3.googleusercontent.com")) {
+    const matchLh3 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchLh3) {
+      return `https://drive.google.com/uc?export=view&id=${matchLh3[1]}`;
+    }
+  }
+
+  return url;
+}
 async function downloadTableAsExcel(bodyTableId, filename) {
-  // === Buat loader seperti login jika belum ada ===
+  // ================= LOADER =================
   let loader = document.getElementById("excelDownloadLoader");
   if (!loader) {
     loader = document.createElement("div");
     loader.id = "excelDownloadLoader";
-    loader.style.display = "none";
     loader.innerHTML = `
       <div class="loader-overlay">
         <div class="spinner"></div>
-        <p style="margin-top:10px; color:#007ACC; font-weight:bold;">Sedang membuat file Excel...</p>
+        <p style="margin-top:10px; color:#007ACC; font-weight:bold;">
+          Sedang membuat file Excel...
+        </p>
       </div>
     `;
     document.body.appendChild(loader);
   }
 
-  // tampilkan loader
   loader.style.display = "flex";
 
   try {
-    // Ambil tbody
     const bodyTable = document.getElementById(bodyTableId);
-    if (!bodyTable) {
-      alert("Tabel body tidak ditemukan!");
-      return;
-    }
+    if (!bodyTable) return alert("Tabel body tidak ditemukan!");
 
-    // Cari header terdekat
     const headerDiv = bodyTable
       .closest(".card")
       .querySelector(".table-header table thead");
-    if (!headerDiv) {
-      alert("Header tabel tidak ditemukan!");
-      return;
-    }
 
-    // Ambil header dan data
+    if (!headerDiv) return alert("Header tabel tidak ditemukan!");
+
     const headers = Array.from(headerDiv.querySelectorAll("th")).map((th) =>
       th.innerText.trim()
     );
+
     const rows = Array.from(bodyTable.querySelectorAll("tr"));
 
-    // Buat workbook dan sheet
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Report");
 
-    // Tambahkan header
     sheet.addRow(headers);
 
-    // 🎨 === Styling Header ===
+    // ================= HEADER STYLE =================
     const headerRow = sheet.getRow(1);
     headerRow.height = 25;
+
     headerRow.eachCell((cell) => {
       cell.fill = {
         type: "pattern",
         pattern: "solid",
         fgColor: { argb: "FF007ACC" }
       };
-      cell.font = {
-        bold: true,
-        color: { argb: "FFFFFFFF" },
-        size: 12
-      };
-      cell.alignment = {
-        vertical: "middle",
-        horizontal: "center"
-      };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCCCCCC" } },
-        left: { style: "thin", color: { argb: "FFCCCCCC" } },
-        bottom: { style: "thin", color: { argb: "FFCCCCCC" } },
-        right: { style: "thin", color: { argb: "FFCCCCCC" } }
-      };
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 12 };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
     });
 
-    // Loop setiap baris data
+    // ================= LOOP DATA =================
     for (let i = 0; i < rows.length; i++) {
       const cells = rows[i].querySelectorAll("td");
-      const rowValues = [];
 
+      // TEXT ROW
+      const rowValues = Array.from(cells).map((cell) =>
+        cell.querySelector("img") || cell.querySelector("a")
+          ? ""
+          : cell.innerText.trim()
+      );
+
+      sheet.addRow(rowValues);
+
+      // ================= HANDLE IMAGE =================
       for (let j = 0; j < cells.length; j++) {
-        const img = cells[j].querySelector("img");
-        if (img) {
-          rowValues.push(""); // placeholder untuk gambar
-        } else {
-          rowValues.push(cells[j].innerText.trim());
-        }
-      }
+        const cell = cells[j];
+        const img = cell.querySelector("img");
 
-      const addedRow = sheet.addRow(rowValues);
+        if (!img) continue;
 
-      // Setelah tambah baris, tempelkan gambar (jika ada)
-      for (let j = 0; j < cells.length; j++) {
-        const img = cells[j].querySelector("img");
-        if (img) {
-          try {
-            const imgResponse = await fetch(img.src);
-            const imgBlob = await imgResponse.blob();
-            const arrayBuffer = await imgBlob.arrayBuffer();
+        let imageBuffer = null;
+        let ext = "jpeg";
 
+        try {
+          // ================= BASE64 =================
+          if (img.src.startsWith("data:image")) {
             const imageId = workbook.addImage({
-              buffer: arrayBuffer,
+              base64: img.src,
               extension: "jpeg"
             });
 
-            // Tambahkan gambar di sel
             sheet.addImage(imageId, {
-              tl: { col: j, row: i + 1 },
-              ext: { width: 80, height: 60 }
+              tl: { col: j + 0.15, row: i + 1.2 },
+              ext: { width: 90, height: 70 }
             });
-          } catch (err) {
-            console.error("⚠️ Gagal menambahkan gambar:", err);
+
+            sheet.getRow(i + 2).height = 55;
+            continue;
           }
+
+          // ================= CANVAS (ANTI CORS) =================
+          await new Promise((resolve) => {
+            const tempImg = new Image();
+            tempImg.crossOrigin = "anonymous";
+
+            // 🔥 gunakan src yang tampil (bukan fetch)
+            tempImg.src = img.src;
+
+            tempImg.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = tempImg.naturalWidth;
+              canvas.height = tempImg.naturalHeight;
+
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(tempImg, 0, 0);
+
+              canvas.toBlob(async (blob) => {
+                if (!blob) return resolve();
+
+                imageBuffer = await blob.arrayBuffer();
+                ext = blob.type.includes("png") ? "png" : "jpeg";
+
+                resolve();
+              }, "image/jpeg");
+            };
+
+            tempImg.onerror = resolve;
+          });
+
+          if (!imageBuffer) continue;
+
+          const imageId = workbook.addImage({
+            buffer: imageBuffer,
+            extension: ext
+          });
+
+          sheet.addImage(imageId, {
+            tl: { col: j + 0.15, row: i + 1.2 },
+            ext: { width: 90, height: 70 }
+          });
+
+          sheet.getRow(i + 2).height = 55;
+        } catch (err) {
+          console.error("Gagal load gambar:", err);
         }
       }
     }
 
-    // === Styling isi tabel ===
+    // ================= STYLE BODY =================
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         row.eachCell((cell) => {
@@ -1446,31 +1825,23 @@ async function downloadTableAsExcel(bodyTableId, filename) {
             horizontal: "left",
             wrapText: true
           };
-          cell.border = {
-            top: { style: "thin", color: { argb: "FFEEEEEE" } },
-            left: { style: "thin", color: { argb: "FFEEEEEE" } },
-            bottom: { style: "thin", color: { argb: "FFEEEEEE" } },
-            right: { style: "thin", color: { argb: "FFEEEEEE" } }
-          };
         });
       }
     });
 
-    // === Lebar kolom otomatis ===
     sheet.columns.forEach((col) => (col.width = 25));
 
-    // === Download hasil ===
+    // ================= DOWNLOAD =================
     const buffer = await workbook.xlsx.writeBuffer();
+
     saveAs(
       new Blob([buffer]),
       `${filename}_${new Date().toISOString().split("T")[0]}.xlsx`
     );
   } finally {
-    // sembunyikan loader
     loader.style.display = "none";
   }
 }
-
 // === Report BBM Per Driver (Tabel per tanggal & kendaraan) ===
 function loadDriverReport() {
   const selectedMonth = document.getElementById("filterMonth")?.value;
@@ -3003,7 +3374,7 @@ function loadJobReportVTS() {
   tbody.innerHTML = `<tr><td colspan="33">Loading Job Report VTS...</td></tr>`;
 
   const API_URL =
-    "https://script.google.com/macros/s/AKfycbyW6bQ8QS6Ba0sJzc6CzmUiCaAwaFuFetKhewZCQxsa2mv9aHep7nyeuPS1sZENNkWz/exec?action=getjobreport";
+    "https://script.google.com/macros/s/AKfycbzqXaF0psZg2-IM4M8YFl6vWWrKAOlpXb_IooJFMBqVGi3i-vGPQqiIjprwWoLns_Wk/exec";
 
   fetch(API_URL)
     .then((res) => res.json())
