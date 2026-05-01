@@ -843,7 +843,53 @@ form button:hover {
 #formSection::-webkit-scrollbar {
   display: none;
 }
+.foto-wrapper {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+  transform: translateX(var(--geser-foto));
+}
 
+/* semua sama besar */
+.foto-wrapper .form-group {
+  flex: 1;
+  min-width: 0; /* biar tidak overflow */
+}
+
+/* responsive HP */
+@media (max-width: 768px) {
+  .foto-wrapper {
+    flex-direction: column;
+  }
+
+  .foto-wrapper .foto-km,
+  .foto-wrapper .form-group {
+    flex: 1;
+  }
+}
+:root {
+  --geser-km: -600px;
+  --geser-bukti: -200px;
+}
+.foto-wrapper {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+}
+
+/* FOTO KM */
+.foto-wrapper .foto-km {
+  flex: 1;
+  transform: translateX(var(--geser-km));
+}
+
+/* FOTO BUKTI */
+.foto-wrapper .form-group:not(.foto-km) {
+  flex: 1;
+  transform: translateX(var(--geser-bukti));
+}
 /* === TABLE === */
 table {
   border-collapse: collapse;
